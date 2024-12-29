@@ -1,0 +1,11 @@
+services:
+  python:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - .cache:/.cache/pypoetry
+    working_dir: /app
+    tty: true
+    user: "${UID}:${GID}"
