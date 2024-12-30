@@ -10,6 +10,8 @@ python = "^3.12"
 jax = {extras = ["cpu"], version = "^0.4.38"}
 flax = "^0.10.2"
 orbax-checkpoint = "^0.10.3"
+dm-pix = "^0.4.3"
+pillow = "^11.0.0"
 matplotlib = "^3.10.0"
 notebook = "^7.3.2"
 
@@ -18,6 +20,7 @@ notebook = "^7.3.2"
 # pandas = "^2.2.3"
 # torch = "^2.5.1"
 # torchvision = "^0.20.1"
+
 
 [build-system]
 requires = ["poetry-core"]

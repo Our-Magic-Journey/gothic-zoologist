@@ -1,6 +1,7 @@
 import jax
 import flax
 import optax
+import dataset
 
 def main():
     print("JAX Version : {}".format(jax.__version__))
@@ -9,6 +10,9 @@ def main():
     print("JAX Backend : {}".format(jax.default_backend()))
 
     ckpt_dir = "/app/.checkpoints/"
+    (test, train) = dataset.load_gothic_dataset()
+
+
 
 
 if __name__ == '__main__':

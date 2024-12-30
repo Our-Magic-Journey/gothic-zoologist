@@ -19,4 +19,7 @@ run:
 shell:
 	docker compose exec -it python bash
 
-.PHONY: init, start, run, shell
+convert_dataset:
+	docker compose exec -it python /app/png_to_jpg.sh
+
+.PHONY: init, start, run, shell, convert_dataset
