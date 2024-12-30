@@ -19,7 +19,7 @@ def train_model():
 
     print("loading model")
     model = CNN(outputs=len(categories))
-    params = model.init(rng, random.normal(inp_rng, (144, 256, 3)))
+    params = model.init(rng, random.normal(inp_rng, (128, 128, 3)))
     optimizer = optax.adam(learning_rate=1e-4)
     model_state = train_state.TrainState.create(apply_fn=model.apply, params=params, tx=optimizer)
     num_epochs = 50

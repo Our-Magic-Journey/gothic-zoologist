@@ -37,9 +37,7 @@ def load_images_from_folder(folder) -> [jnp.array]:
         if file_name.endswith(".jpg"):
             img_path = os.path.join(folder, file_name)
             img = load_image(img_path)
-
             images.append(img)
-            images.append(dm_pix.flip_left_right(img))
 
 
     return images
@@ -47,7 +45,7 @@ def load_images_from_folder(folder) -> [jnp.array]:
 
 def load_image(path: str) -> jnp.array:
     img = pil.open(path)
-    img.thumbnail((256, 144))
+    img.thumbnail((128, 128))
 
     # convert to np and normalize image
     normal = jnp.array(img, dtype=jnp.float32) / 255
