@@ -31,8 +31,10 @@ def train_model():
         epoch_time = time.time() - start_time
         print(f'Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss:.8f}, Train Accuracy: {train_accuracy:.8f}, Time: {epoch_time:.2f}s')
 
+        if train_loss < 0.001:
+            break
+
     print("training finished")
-    verify_training(model_state, test)
     create_checkpoint(categories, model_state.params)
 
     return model_state
@@ -45,7 +47,7 @@ def load_checkpoint() -> (int, jnp.ndarray) or None:
     orbax_checkpointer = ocp.PyTreeCheckpointer()
     raw_restored = orbax_checkpointer. restore("/app/.checkpoints/single_save")
 
-    return raw_restored['config']['outputs'], raw_restored['params']
+    return raw_restored['config']['categories'], raw_restored['params']
 
 
 def create_checkpoint(categories, params):
@@ -53,7 +55,7 @@ def create_checkpoint(categories, params):
 
     orbax_checkpointer = ocp.PyTreeCheckpointer()
 
-    config = {'outputs': len(categories)}
+    config = {'categories': categories}
     ckpt = {'params': params, 'config': config }
     save_args = orbax_utils.save_args_from_target(ckpt)
 
@@ -95,12 +97,29 @@ def train_epoch(state, images):
     return state, train_loss, train_accuracy
 
 
-def verify_training(trained_model_state, test_data):
+def verify_training(model: CNN, params, test_data):
     test_loss = []
     test_accuracy = []
 
+    @jax.jit
+    def apply_model(params, image, label_id):
+        def loss_fn(params):
+            prediction = model.apply(params, image)
+            one_hot = jax.nn.one_hot(label_id, prediction.shape[0])
+            loss = jnp.mean(optax.softmax_cross_entropy(logits=prediction, labels=one_hot))
+
+            return loss, prediction
+
+
+        grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+        (loss, prediction), grads = grad_fn(params)
+        accuracy = jnp.mean(jnp.argmax(prediction, -1) == label_id)
+
+        return grads, loss, accuracy
+
+
     for (img, label) in test_data:
-        _, loss, accuracy = apply_model(trained_model_state, img, label)
+        _, loss, accuracy = apply_model(params, img, label)
         test_loss.append(loss)
         test_accuracy.append(accuracy)
 
