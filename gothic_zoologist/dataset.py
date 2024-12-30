@@ -3,11 +3,16 @@ from jax import numpy as jnp
 import PIL.Image as pil
 
 
-def load_gothic_dataset() -> ([(jnp.array, str)], [(jnp.array, str)]):
-    return load_dataset("/app/gothic_zoologist/data/gothic/test"), load_dataset("/app/gothic_zoologist/data/gothic/train")
+def load_gothic_dataset() -> ([(jnp.array, str)], [(jnp.array, str)], [str]):
+    (test_img, test_categories) = load_dataset("/app/gothic_zoologist/data/gothic/test")
+    (train_img, train_categories) = load_dataset("/app/gothic_zoologist/data/gothic/train")
+
+    categories = unique(test_categories + train_categories)
+
+    return test_img, train_img, categories
 
 
-def load_dataset(base_path) -> [(jnp.array, str)]:
+def load_dataset(base_path) -> ([(jnp.array, str)], [str]):
     categories = sorted(os.listdir(base_path))
     images = []
 
@@ -17,7 +22,7 @@ def load_dataset(base_path) -> [(jnp.array, str)]:
         for image in  load_images_from_folder(folder):
             images.append((image, category))
 
-    return images
+    return images, categories
 
 
 def load_images_from_folder(folder) -> [jnp.array]:
@@ -34,7 +39,14 @@ def load_images_from_folder(folder) -> [jnp.array]:
 
 def load_image(path: str) -> jnp.array:
     img = pil.open(path)
-    img.thumbnail((224, 224))
+    img.thumbnail((256, 144))
 
     # convert to np and normalize image
-    return jnp.array(img, dtype=jnp.float32) / 255
+    normal = jnp.array(img, dtype=jnp.float32) / 255
+
+    # (H, W, C) -> (W, H, C)
+    return jnp.transpose(normal, (1, 0, 2))
+
+
+def unique(data: [str]):
+    return list(set(data))
