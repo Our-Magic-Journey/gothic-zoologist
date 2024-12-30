@@ -1,13 +1,17 @@
 import os
+
+import jax
 from jax import numpy as jnp
 import PIL.Image as pil
+import dm_pix
 
-
-def load_gothic_dataset() -> ([(jnp.array, str)], [(jnp.array, str)], [str]):
+def load_gothic_dataset() -> ([(jnp.array, int)], [(jnp.array, int)], [str]):
     (test_img, test_categories) = load_dataset("/app/gothic_zoologist/data/gothic/test")
     (train_img, train_categories) = load_dataset("/app/gothic_zoologist/data/gothic/train")
 
     categories = unique(test_categories + train_categories)
+    test_img = [(img, categories.index(category)) for (img, category) in test_img]
+    train_img = [(img, categories.index(category)) for (img, category) in train_img]
 
     return test_img, train_img, categories
 
@@ -32,7 +36,11 @@ def load_images_from_folder(folder) -> [jnp.array]:
     for file_name in files:
         if file_name.endswith(".jpg"):
             img_path = os.path.join(folder, file_name)
-            images.append(load_image(img_path))
+            img = load_image(img_path)
+
+            images.append(img)
+            images.append(dm_pix.flip_left_right(img))
+
 
     return images
 
@@ -44,8 +52,7 @@ def load_image(path: str) -> jnp.array:
     # convert to np and normalize image
     normal = jnp.array(img, dtype=jnp.float32) / 255
 
-    # (H, W, C) -> (W, H, C)
-    return jnp.transpose(normal, (1, 0, 2))
+    return normal
 
 
 def unique(data: [str]):
