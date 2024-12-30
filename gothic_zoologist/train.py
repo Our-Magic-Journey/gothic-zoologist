@@ -1,10 +1,15 @@
 import jax
 import optax
+import os
+
 import dataset
 from model import CNN
 from jax import random
 from jax import numpy as jnp
 from flax.training import train_state
+import orbax.checkpoint as ocp
+from flax.training import orbax_utils
+import time
 
 def train_model():
     rng, inp_rng, init_rng = random.split(random.PRNGKey(42), 3)
@@ -17,17 +22,44 @@ def train_model():
     params = model.init(rng, random.normal(inp_rng, (144, 256, 3)))
     optimizer = optax.adam(learning_rate=1e-4)
     model_state = train_state.TrainState.create(apply_fn=model.apply, params=params, tx=optimizer)
-    num_epochs = 3
+    num_epochs = 50
 
-    print("starting training")
+    print(f"starting training on {len(train)} images")
     for epoch in range(num_epochs):
+        start_time = time.time()
         model_state, train_loss, train_accuracy = train_epoch(model_state, train)
-        print(f'epoch: {epoch:03d}, train loss: {train_loss:.4f}, train accuracy: {train_accuracy:.4f}')
+        epoch_time = time.time() - start_time
+        print(f'Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss:.8f}, Train Accuracy: {train_accuracy:.8f}, Time: {epoch_time:.2f}s')
 
     print("training finished")
     verify_training(model_state, test)
+    create_checkpoint(categories, model_state.params)
 
     return model_state
+
+
+def load_checkpoint() -> (int, jnp.ndarray) or None:
+    if not os.path.exists("/app/.checkpoints/single_save"):
+        return None
+
+    orbax_checkpointer = ocp.PyTreeCheckpointer()
+    raw_restored = orbax_checkpointer. restore("/app/.checkpoints/single_save")
+
+    return raw_restored['config']['outputs'], raw_restored['params']
+
+
+def create_checkpoint(categories, params):
+    print("saving checkpoint")
+
+    orbax_checkpointer = ocp.PyTreeCheckpointer()
+
+    config = {'outputs': len(categories)}
+    ckpt = {'params': params, 'config': config }
+    save_args = orbax_utils.save_args_from_target(ckpt)
+
+    ocp.test_utils.erase_and_create_empty('/app/.checkpoints/')
+    orbax_checkpointer.save('/app/.checkpoints/single_save', ckpt, save_args=save_args)
+    print("checkpoint saved")
 
 
 @jax.jit
@@ -66,7 +98,6 @@ def train_epoch(state, images):
 def verify_training(trained_model_state, test_data):
     test_loss = []
     test_accuracy = []
-
 
     for (img, label) in test_data:
         _, loss, accuracy = apply_model(trained_model_state, img, label)
